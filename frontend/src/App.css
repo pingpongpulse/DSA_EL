@@ -1,0 +1,420 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import fonts */
+@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Baloo+2:wght@400;500;600;700&display=swap');
+
+/* Global styles */
+body {
+  font-family: 'monospace', 'Courier New', 'Times New Roman', sans-serif;
+  overflow-x: hidden;
+  background-color: #F7F8FC;
+  transition: background-color 0.3s ease;
+}
+
+body.dark-mode {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+/* Dark mode editor content */
+body.dark-mode .editor-content {
+  color: #e0e0e0; /* Light gray text in dark mode */
+  background-color: #2d2d2d;
+}
+
+/* Content editable styling - use native cursor only */
+[contenteditable] {
+  outline: none;
+  caret-color: #000000; /* Native black cursor */
+}
+
+/* Dark mode cursor */
+body.dark-mode [contenteditable] {
+  caret-color: #ffffff; /* White cursor in dark mode */
+}
+
+/* Editor container */
+.min-h-screen {
+  min-height: 100vh;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.py-10 {
+  padding-top: 2.5rem;
+  padding-bottom: 2.5rem;
+}
+
+.px-4 {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.bg-editor-bg {
+  background-color: #F7F8FC;
+}
+
+/* Navigation container */
+.nav-container {
+  width: 100%;
+  max-width: 768px;
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Navigation buttons */
+.nav-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #B8C0FF;
+  color: white;
+  font-family: 'Optima', 'Segoe UI', sans-serif;
+  border: none;
+  border-radius: 9999px;
+  padding: 0.5rem 1rem;
+  transition: all 0.2s ease;
+  transform: scale(1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.nav-button:hover {
+  background-color: #a8b0ff;
+  transform: scale(1.05);
+}
+
+.nav-button:active {
+  transform: scale(0.95);
+}
+
+.primary-button {
+  background-color: #B8C0FF;
+}
+
+/* Navigation arrows */
+.nav-arrows {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.nav-arrow {
+  background-color: #FFD6E8;
+  color: white;
+  font-family: 'Optima', 'Segoe UI', sans-serif;
+  border: none;
+  border-radius: 9999px;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.nav-arrow:hover:not(.disabled) {
+  background-color: #f5c6da;
+  transform: scale(1.05);
+}
+
+.nav-arrow:active:not(.disabled) {
+  transform: scale(0.95);
+}
+
+.nav-arrow.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Editor card */
+.editor-card {
+  width: 100%;
+  max-width: 768px;
+  background-color: #FFFFFF;
+  border-radius: 1rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid #E0E0E0;
+  transition: all 0.3s ease;
+}
+
+.editor-card:hover {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Dark mode editor card */
+body.dark-mode .editor-card {
+  background-color: #2d2d2d;
+  border-color: #555555;
+  color: #ffffff;
+}
+
+body.dark-mode .editor-content {
+  background-color: #2d2d2d;
+  color: #ffffff;
+}
+
+body.dark-mode .suggestion-bubble {
+  background-color: #3d3d3d;
+  border-color: #555555;
+  color: #ffffff;
+}
+
+body.dark-mode .suggestion-item:hover {
+  background-color: rgba(184, 192, 255, 0.2);
+}
+
+body.dark-mode .nav-button,
+body.dark-mode .nav-arrow {
+  background-color: #444;
+  color: white;
+}
+
+body.dark-mode .formatting-toolbar {
+  background-color: #2d2d2d;
+  border-color: #555555;
+}
+
+body.dark-mode .format-button {
+  background-color: #555555;
+  color: white;
+}
+
+/* Formatting Toolbar */
+.formatting-toolbar {
+  width: 100%;
+  max-width: 768px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem; /* 8px spacing between groups */
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background-color: #FFFFFF;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.toolbar-group {
+  display: flex;
+  gap: 0.25rem; /* 4px spacing within groups */
+  align-items: center;
+}
+
+.format-button {
+  background-color: #B8C0FF;
+  color: white;
+  font-family: 'Optima', 'Segoe UI', sans-serif;
+  border: none;
+  border-radius: 0.5rem;
+  width: 2.25rem; /* 36px */
+  height: 2.25rem; /* 36px */
+  padding: 0.25rem; /* Reduced padding */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.875rem; /* Smaller font */
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.format-button:hover {
+  background-color: #a8b0ff;
+  transform: scale(1.05);
+}
+
+.format-button:active {
+  transform: scale(0.95);
+}
+
+.format-button strong {
+  font-weight: 700;
+}
+
+.format-button em {
+  font-style: italic;
+}
+
+.format-button:focus {
+  outline: 2px solid #B8C0FF;
+  outline-offset: 2px;
+}
+
+/* Dark mode toolbar */
+body.dark-mode .formatting-toolbar {
+  background-color: #2d2d2d;
+  border-color: #555555;
+}
+
+body.dark-mode .format-button {
+  background-color: #555555;
+  color: white;
+}
+
+/* Editor content */
+.editor-content {
+  width: 100%;
+  min-height: 400px;
+  padding: 1rem;
+  outline: none;
+  color: #3A3A3A;
+  font-family: monospace, 'Courier New', 'Times New Roman';
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  direction: ltr;
+  text-align: left;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Suggestion bubble */
+.suggestion-bubble {
+  position: absolute;
+  z-index: 1000; /* Increased z-index to ensure it's on top */
+  background-color: #E8FFF5;
+  border-radius: 0.75rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #E0E0E0;
+  padding: 0.5rem;
+  min-width: 150px;
+  max-width: 320px;
+  transition: all 0.2s ease-out;
+  animation: fadeInScale 0.2s ease-out forwards;
+  pointer-events: auto; /* Ensure the bubble can receive events */
+}
+
+/* Ensure suggestion items are clickable */
+.suggestion-item {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  color: #3A3A3A;
+  font-family: monospace, 'Courier New', 'Times New Roman';
+  user-select: none; /* Prevent text selection during click */
+  pointer-events: auto; /* Ensure items can receive events */
+}
+
+.suggestion-item:hover {
+  background-color: rgba(184, 192, 255, 0.3); /* More prominent hover */
+  transform: translateX(2px); /* Subtle movement on hover */
+}
+
+.suggestion-item.selected {
+  background-color: rgba(184, 192, 255, 0.4); /* More prominent selection */
+  font-weight: 500;
+}
+
+.suggestion-item:active {
+  transform: scale(0.98); /* Visual feedback on click */
+  background-color: rgba(184, 192, 255, 0.5);
+}
+
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Suggestion list */
+.suggestion-list {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+.suggestion-list li + li {
+  margin-top: 0.25rem;
+}
+
+/* Suggestion item */
+.suggestion-item {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  color: #3A3A3A;
+  font-family: monospace, 'Courier New', 'Times New Roman';
+}
+
+.suggestion-item:hover {
+  background-color: rgba(184, 192, 255, 0.2);
+}
+
+.suggestion-item.selected {
+  background-color: rgba(184, 192, 255, 0.3);
+}
+
+/* Page indicator */
+.page-indicator {
+  color: #6B6B6B;
+  font-family: 'Optima', 'Segoe UI', sans-serif;
+}
+
+/* Animation classes */
+.fade-in-scale {
+  animation: fadeInScale 0.2s ease-out forwards;
+}
+
+.fade-out-scale {
+  animation: fadeOutScale 0.15s ease-in forwards;
+}
+
+@keyframes fadeOutScale {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+/* Button animations */
+.btn-pop {
+  transition: transform 0.1s ease;
+}
+
+.btn-pop:active {
+  transform: scale(0.95);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #B8C0FF;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a0a8ff;
+}

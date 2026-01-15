@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import fonts */
+@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Baloo+2:wght@400;500;600;700&display=swap');
+
+@font-face {
+  font-family: 'Candy Beans';
+  src: url('https://fonts.googleapis.com/css2?family=Candy+Beans&display=swap');
+}
+
+global {
+  font-family: 'monospace', 'Courier New', 'Times New Roman', sans-serif;
+}
+
+body {
+  margin: 0;
+  font-family: 'monospace', 'Courier New', 'Times New Roman', sans-serif;
+  background-color: #F7F8FC;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Custom styles for our editor */
+.editor-bg { background-color: #F7F8FC; }
+.card-bg { background-color: #FFFFFF; }
+.primary-accent { background-color: #B8C0FF; }
+.secondary-accent { background-color: #FFD6E8; }
+.suggestion-bg { background-color: #E8FFF5; }
+.primary-text { color: #3A3A3A; }
+.secondary-text { color: #6B6B6B; }
+.border-color { border-color: #E0E0E0; }
+.font-candy { font-family: 'Comic Neue', 'Baloo 2', cursive; }
+.font-mono { font-family: monospace, 'Courier New', 'Times New Roman'; }
