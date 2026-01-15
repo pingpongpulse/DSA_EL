@@ -1,129 +1,369 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import './App.css';
+import EditorCanvas from './components/EditorCanvas';
+import Toolbar from './components/Toolbar';
+import PageManager from './components/PageManager';
+import ColorSwitcher from './components/ColorSwitcher';
+import ExportButton from './components/ExportButton';
 
 function App() {
-  const [pages, setPages] = useState([{ id: 1, content: '', title: 'Note 1' }]);
+  // ==========================================
+  // MULTI-PAGE STATE MANAGEMENT
+  // ==========================================
+  const [pages, setPages] = useState([{ id: 1, content: '', color: '#eaaeb4' }]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [editorBgColor, setEditorBgColor] = useState('#eaaeb4');
+  const [darkMode, setDarkMode] = useState(false);
+  const [nextPageId, setNextPageId] = useState(2);
+
+  // ==========================================
+  // SUGGESTION STATE
+  // ==========================================
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionPosition, setSuggestionPosition] = useState({ x: 0, y: 0 });
-  const [darkMode, setDarkMode] = useState(false);
-  const [editorBgColor, setEditorBgColor] = useState('#FFFFFF');
-  
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
+  const [currentWord, setCurrentWord] = useState('');
+
   const editorRef = useRef(null);
   const suggestionTimerRef = useRef(null);
-  
+  const isReplacingWord = useRef(false);
+
+  // ==========================================
+  // PAGE MANAGEMENT FUNCTIONS
+  // ==========================================
+
   const currentPage = pages[currentPageIndex];
-  
-  const getTextBeforeCaret = () => {
-    const el = editorRef.current;
-    if (!el) return '';
 
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return '';
-
-    const range = selection.getRangeAt(0);
-    // Ensure the caret is inside our editor
-    if (!el.contains(range.startContainer)) return '';
-
-    const preRange = range.cloneRange();
-    preRange.selectNodeContents(el);
-    preRange.setEnd(range.endContainer, range.endOffset);
-    return preRange.toString();
-  };
-
-  const getLastWord = (textBeforeCaret) => {
-    // Match the last contiguous alphabetic token (dictionary is a-z)
-    const m = textBeforeCaret.match(/([A-Za-z]+)$/);
-    return m ? m[1].toLowerCase() : '';
-  };
-
-  // Handle text input in the editor
-  const handleInput = (e) => {
-    const content = editorRef.current.innerHTML;
-    setPages(prev => {
-      const newPages = [...prev];
-      newPages[currentPageIndex] = { ...newPages[currentPageIndex], content };
+  const updatePageContent = useCallback((content) => {
+    setPages(prevPages => {
+      const newPages = [...prevPages];
+      newPages[currentPageIndex].content = content;
       return newPages;
     });
-    
-    // Extract current word being typed
-    const textBeforeCaret = getTextBeforeCaret();
-    const lastWord = getLastWord(textBeforeCaret);
+  }, [currentPageIndex]);
 
-    // Clear previous timer
-    if (suggestionTimerRef.current) {
-      clearTimeout(suggestionTimerRef.current);
+  const updatePageColor = useCallback((color) => {
+    setPages(prevPages => {
+      const newPages = [...prevPages];
+      newPages[currentPageIndex].color = color;
+      return newPages;
+    });
+    setEditorBgColor(color);
+  }, [currentPageIndex]);
+
+  const handleAddPage = useCallback(() => {
+    const newPage = { id: nextPageId, content: '', color: '#eaaeb4' };
+    setPages(prevPages => [...prevPages, newPage]);
+    setNextPageId(prev => prev + 1);
+    setCurrentPageIndex(pages.length);
+  }, [pages.length, nextPageId]);
+
+  const handleDeletePage = useCallback((pageIndex) => {
+    if (pages.length > 1) {
+      setPages(prevPages => prevPages.filter((_, i) => i !== pageIndex));
+      const newIndex = Math.min(pageIndex, pages.length - 2);
+      setCurrentPageIndex(newIndex);
+      setEditorBgColor(pages[newIndex].color);
+    }
+  }, [pages]);
+
+  const handlePageChange = useCallback((pageNumber) => {
+    const newIndex = pageNumber - 1;
+    setCurrentPageIndex(newIndex);
+    setEditorBgColor(pages[newIndex].color);
+    setShowSuggestions(false);
+  }, [pages]);
+
+  // ==========================================
+  // IMPROVED CARET POSITION HELPERS
+  // ==========================================
+
+  const saveCaretPosition = useCallback((element) => {
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return null;
+
+    const range = selection.getRangeAt(0);
+    const preCaretRange = range.cloneRange();
+    preCaretRange.selectNodeContents(element);
+    preCaretRange.setEnd(range.endContainer, range.endOffset);
+    
+    return {
+      offset: preCaretRange.toString().length,
+      range: range.cloneRange()
+    };
+  }, []);
+
+  const restoreCaretPosition = useCallback((element, offset) => {
+    const selection = window.getSelection();
+    const range = document.createRange();
+    
+    let currentPos = 0;
+    const walker = document.createTreeWalker(
+      element,
+      NodeFilter.SHOW_TEXT,
+      null,
+      false
+    );
+
+    let node = walker.nextNode();
+    while (node) {
+      const nodeLength = node.textContent.length;
+      if (currentPos + nodeLength >= offset) {
+        const localOffset = Math.min(offset - currentPos, nodeLength);
+        range.setStart(node, localOffset);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        return true;
+      }
+      currentPos += nodeLength;
+      node = walker.nextNode();
     }
 
-    // Only fetch if there's a meaningful word
-    if (lastWord && lastWord.length >= 1) {
-      suggestionTimerRef.current = setTimeout(() => {
-        fetchSuggestions(lastWord);
-      }, 120);
-    } else {
-      setShowSuggestions(false);
-      setSelectedSuggestionIndex(-1);
-    }
-  };
-  
-  // Handle keydown events for proper text editing in the editor
-  const handleEditorKeyDown = (e) => {
-    // Allow all keyboard inputs - don't prevent default for normal typing
-    // Only handle special cases when suggestions are showing
-    
-    if (showSuggestions && suggestions.length > 0) {
-      // Let the global handler manage suggestion navigation
-      return;
-    }
-    
-    // Handle Enter key - create new line (browser handles this naturally)
-    // Handle Delete and Backspace - browser handles naturally
-    // Handle Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+A, Ctrl+Z, Ctrl+Y - browser handles naturally
-    // All other keys are allowed - no restrictions
-  };
-  
-  // Handle paste events to ensure proper text insertion
-  const handlePaste = (e) => {
-    e.preventDefault();
-    const text = (e.clipboardData || window.clipboardData).getData('text');
-    document.execCommand('insertText', false, text);
-  };
-  
-  // Sync editor content when page changes
-  useEffect(() => {
-    if (editorRef.current && currentPage) {
-      // Only update if content is different to avoid cursor jumping
-      if (editorRef.current.innerHTML !== currentPage.content) {
-        editorRef.current.innerHTML = currentPage.content || '';
+    // Fallback: place at end
+    if (element.childNodes.length > 0) {
+      const lastChild = element.childNodes[element.childNodes.length - 1];
+      const lastNode = lastChild.nodeType === Node.TEXT_NODE 
+        ? lastChild 
+        : lastChild.lastChild || lastChild;
+      
+      try {
+        const endOffset = lastNode.nodeType === Node.TEXT_NODE 
+          ? lastNode.textContent.length 
+          : 0;
+        range.setStart(lastNode, endOffset);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        return true;
+      } catch (e) {
+        console.error('Error placing caret at end:', e);
       }
     }
-  }, [currentPageIndex, currentPage]);
-  
-  // Fetch suggestions from backend API
-  const fetchSuggestions = async (word) => {
+    
+    return false;
+  }, []);
+
+  // ==========================================
+  // SUGGESTION POSITIONING (Real-time Caret Tracking)
+  // ==========================================
+
+  const getCaretCoordinates = useCallback(() => {
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return null;
+
+    const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    const editor = editorRef.current;
+    if (!editor) return null;
+    
+    const editorRect = editor.getBoundingClientRect();
+
+    // Calculate position relative to the page (fixed positioning)
+    let caretX = rect.left;
+    let caretY = rect.bottom;
+
+    // Check if caret is within viewport and visible
+    const isVisible = 
+      rect.top >= 0 && 
+      rect.bottom <= window.innerHeight &&
+      rect.left >= 0 &&
+      rect.right <= window.innerWidth;
+
+    return {
+      x: caretX,
+      y: caretY,
+      isVisible,
+      viewportRect: rect,
+    };
+  }, []);
+
+  // ==========================================
+  // IMPROVED WORD DETECTION
+  // ==========================================
+
+  const getWordAtCaret = useCallback((element) => {
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return { word: '', offset: 0, wordStart: 0, wordEnd: 0 };
+
+    const range = selection.getRangeAt(0);
+    const preCaretRange = range.cloneRange();
+    preCaretRange.selectNodeContents(element);
+    preCaretRange.setEnd(range.endContainer, range.endOffset);
+    
+    const textBeforeCaret = preCaretRange.toString();
+    const caretOffset = textBeforeCaret.length;
+    
+    const fullText = element.textContent || '';
+    
+    // Find word boundaries
+    let wordStart = caretOffset;
+    let wordEnd = caretOffset;
+    
+    // Move backwards to find word start
+    while (wordStart > 0 && /[a-zA-Z]/.test(fullText[wordStart - 1])) {
+      wordStart--;
+    }
+    
+    // Move forwards to find word end
+    while (wordEnd < fullText.length && /[a-zA-Z]/.test(fullText[wordEnd])) {
+      wordEnd++;
+    }
+    
+    const word = fullText.substring(wordStart, caretOffset);
+    
+    return { word, offset: caretOffset, wordStart, wordEnd };
+  }, []);
+
+  // ==========================================
+  // ENHANCED WORD REPLACEMENT WITH FORMATTING PRESERVATION
+  // ==========================================
+
+  const replaceWordAtCaret = useCallback((editor, newWord) => {
+    if (isReplacingWord.current) return false;
+    isReplacingWord.current = true;
+
     try {
-      // Use CRA proxy (package.json "proxy") so we don't hardcode host/port
-      const response = await fetch(`/suggest?word=${encodeURIComponent(word)}`);
-      const data = await response.json();
+      const selection = window.getSelection();
+      if (!selection.rangeCount) {
+        isReplacingWord.current = false;
+        return false;
+      }
+
+      const range = selection.getRangeAt(0);
+      const { word, wordStart, wordEnd } = getWordAtCaret(editor);
       
-      if (data.suggestions && data.suggestions.length > 0) {
-        setSuggestions(data.suggestions.slice(0, 5));
+      if (!word || word.length === 0) {
+        isReplacingWord.current = false;
+        return false;
+      }
+
+      // Calculate new caret position (after new word + space)
+      const fullText = editor.textContent || '';
+      const beforeWord = fullText.substring(0, wordStart);
+      const newCaretPosition = beforeWord.length + newWord.length + 1;
+
+      // Find all text nodes and locate the target node
+      const walker = document.createTreeWalker(
+        editor,
+        NodeFilter.SHOW_TEXT,
+        null,
+        false
+      );
+
+      let currentPos = 0;
+      let targetNode = null;
+      let nodeStartOffset = 0;
+      const textNodes = [];
+
+      let node = walker.nextNode();
+      while (node) {
+        textNodes.push({ node, start: currentPos, end: currentPos + node.textContent.length });
         
-        // Position suggestion bubble near caret
-        const selection = window.getSelection();
-        if (selection.rangeCount > 0) {
-          const range = selection.getRangeAt(0);
-          const rect = range.getBoundingClientRect();
-          // Fallback: if rect is empty (sometimes for collapsed ranges), anchor to editor
-          if (rect && (rect.left || rect.top || rect.bottom || rect.right)) {
-            setSuggestionPosition({ x: rect.left, y: rect.bottom + 10 });
-          } else {
-            const editorRect = editorRef.current.getBoundingClientRect();
-            setSuggestionPosition({ x: editorRect.left + 16, y: editorRect.top + 40 });
-          }
+        if (currentPos <= wordStart && wordStart < currentPos + node.textContent.length) {
+          targetNode = node;
+          nodeStartOffset = currentPos;
         }
         
+        currentPos += node.textContent.length;
+        node = walker.nextNode();
+      }
+
+      if (!targetNode) {
+        isReplacingWord.current = false;
+        return false;
+      }
+
+      // Handle word replacement within the text node
+      const nodeText = targetNode.textContent;
+      const wordStartInNode = wordStart - nodeStartOffset;
+      const wordEndInNode = Math.min(wordEnd - nodeStartOffset, nodeText.length);
+      
+      // Check if word spans multiple nodes (edge case)
+      const wordSpansMultipleNodes = wordEnd > nodeStartOffset + nodeText.length;
+      
+      if (wordSpansMultipleNodes) {
+        // Complex case: word spans multiple text nodes (rare with our word detection)
+        // Fall back to simple replacement
+        const textContent = editor.textContent;
+        const newText = textContent.substring(0, wordStart) + newWord + ' ' + textContent.substring(wordEnd);
+        
+        // Preserve formatting by using innerHTML manipulation
+        editor.textContent = newText;
+        restoreCaretPosition(editor, newCaretPosition);
+        updatePageContent(editor.innerHTML);
+        isReplacingWord.current = false;
+        return true;
+      }
+
+      // Standard case: word is within a single text node
+      const beforeInNode = nodeText.substring(0, wordStartInNode);
+      const afterInNode = nodeText.substring(wordEndInNode);
+      
+      // Replace text preserving the parent element's formatting
+      targetNode.textContent = beforeInNode + newWord + ' ' + afterInNode;
+
+      // Position caret after the replaced word and space
+      const newRange = document.createRange();
+      const localCaretPos = wordStartInNode + newWord.length + 1;
+      
+      try {
+        // Ensure we don't exceed text length
+        const safeCaretPos = Math.min(localCaretPos, targetNode.textContent.length);
+        newRange.setStart(targetNode, safeCaretPos);
+        newRange.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+      } catch (e) {
+        console.error('Error positioning caret after replacement:', e);
+        // Fallback: position at end of replaced word
+        try {
+          newRange.setStart(targetNode, wordStartInNode + newWord.length);
+          newRange.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(newRange);
+        } catch (fallbackError) {
+          // Ultimate fallback: use offset-based restoration
+          restoreCaretPosition(editor, newCaretPosition);
+        }
+      }
+
+      // Update content while preserving all formatting
+      updatePageContent(editor.innerHTML);
+      isReplacingWord.current = false;
+      return true;
+
+    } catch (error) {
+      console.error('Error in word replacement:', error);
+      isReplacingWord.current = false;
+      return false;
+    }
+  }, [getWordAtCaret, updatePageContent, restoreCaretPosition]);
+
+  // ==========================================
+  // INPUT HANDLING AND SUGGESTION FETCHING
+  // ==========================================
+
+  const fetchSuggestions = useCallback(async (word) => {
+    try {
+      const response = await fetch(`/suggest?word=${encodeURIComponent(word)}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.suggestions && Array.isArray(data.suggestions) && data.suggestions.length > 0) {
+        setSuggestions(data.suggestions.slice(0, 5));
+        setSelectedSuggestionIndex(-1);
+
+        const coords = getCaretCoordinates();
+        if (coords) {
+          setSuggestionPosition(coords);
+        }
+
         setShowSuggestions(true);
       } else {
         setShowSuggestions(false);
@@ -132,246 +372,275 @@ function App() {
       console.error('Error fetching suggestions:', error);
       setShowSuggestions(false);
     }
-  };
-  
-  // Insert a suggestion into the editor
-  const insertSuggestion = (suggestion, event) => {
+  }, [getCaretCoordinates]);
+
+  const handleInput = useCallback((e) => {
+    if (isReplacingWord.current) return;
+    
+    const editor = e.currentTarget;
+    
+    // Update page content
+    updatePageContent(editor.innerHTML);
+    
+    // Get word at caret
+    const { word } = getWordAtCaret(editor);
+    setCurrentWord(word);
+
+    // Clear any pending suggestion timers
+    if (suggestionTimerRef.current) {
+      clearTimeout(suggestionTimerRef.current);
+    }
+
+    // Fetch suggestions if word is long enough
+    if (word && word.length >= 2) {
+      suggestionTimerRef.current = setTimeout(() => {
+        fetchSuggestions(word);
+      }, 200);
+    } else {
+      setShowSuggestions(false);
+      setSelectedSuggestionIndex(-1);
+    }
+  }, [getWordAtCaret, updatePageContent, fetchSuggestions]);
+
+  const insertSuggestion = useCallback((suggestion, event) => {
     const editor = editorRef.current;
-    
-    // Debug logging
-    console.log('Inserting suggestion:', suggestion);
-    
-    // Prevent default behavior if event is provided
+
     event?.preventDefault();
     event?.stopPropagation();
-    
-    // Get current selection
-    const selection = window.getSelection();
-    if (selection.rangeCount === 0) {
-      console.log('No selection found');
-      return;
-    }
-    
-    const range = selection.getRangeAt(0);
-    
-    // Verify we're inside the editor
-    if (!editor.contains(range.commonAncestorContainer)) {
-      console.warn('Selection is outside editor');
-      return;
-    }
-    
-    // Get text content and find word boundaries
-    const editorText = editor.textContent || '';
-    const caretOffset = getCaretCharacterOffsetWithin(editor);
-    
-    console.log('Editor text:', editorText);
-    console.log('Caret offset:', caretOffset);
-    
-    // Find the start of current word (search backwards for non-letter characters)
-    let wordStart = caretOffset;
-    while (wordStart > 0 && /[a-zA-Z]/.test(editorText[wordStart - 1])) {
-      wordStart--;
-    }
-    
-    // Find the end of current word (search forwards for non-letter characters)
-    let wordEnd = caretOffset;
-    while (wordEnd < editorText.length && /[a-zA-Z]/.test(editorText[wordEnd])) {
-      wordEnd++;
-    }
-    
-    console.log('Word boundaries:', wordStart, 'to', wordEnd);
-    console.log('Word to replace:', editorText.substring(wordStart, wordEnd));
-    
-    // If we have a word to replace
-    if (wordStart < wordEnd) {
-      try {
-        // Create new text content
-        const beforeWord = editorText.substring(0, wordStart);
-        const afterWord = editorText.substring(wordEnd);
-        const newTextContent = beforeWord + suggestion + ' ' + afterWord;
-        
-        console.log('New text content:', newTextContent);
-        
-        // Update editor content
-        editor.textContent = newTextContent;
-        
-        // Set cursor position after the inserted word
-        const newCaretPos = wordStart + suggestion.length + 1; // +1 for space
-        console.log('Setting cursor to position:', newCaretPos);
-        setCaretPosition(editor, newCaretPos);
-        
-      } catch (error) {
-        console.error('Error inserting suggestion:', error);
-        // Fallback: simple replacement
-        document.execCommand('insertText', false, suggestion + ' ');
-      }
-    } else {
-      console.log('No word to replace found');
-    }
-    
-    setShowSuggestions(false);
+
+    if (!editor) return;
+
+    // Ensure editor has focus
     editor.focus();
-  };
-  
-  // Helper function to get caret offset within element
-  const getCaretCharacterOffsetWithin = (element) => {
-    let caretOffset = 0;
-    const selection = window.getSelection();
+
+    // Replace word using improved logic
+    const replaced = replaceWordAtCaret(editor, suggestion);
     
-    if (selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      const preCaretRange = range.cloneRange();
-      preCaretRange.selectNodeContents(element);
-      preCaretRange.setEnd(range.endContainer, range.endOffset);
-      caretOffset = preCaretRange.toString().length;
-    }
-    
-    return caretOffset;
-  };
-  
-  // Helper function to set caret position
-  const setCaretPosition = (element, position) => {
-    const selection = window.getSelection();
-    const range = document.createRange();
-    
-    // Find the text node and offset
-    let currentPos = 0;
-    const walker = document.createTreeWalker(
-      element,
-      NodeFilter.SHOW_TEXT,
-      null,
-      false
-    );
-    
-    let node = walker.nextNode();
-    while (node && currentPos + node.textContent.length < position) {
-      currentPos += node.textContent.length;
-      node = walker.nextNode();
-    }
-    
-    if (node) {
-      const offset = position - currentPos;
-      range.setStart(node, Math.min(offset, node.textContent.length));
-      range.collapse(true);
+    if (replaced) {
+      // Hide suggestions immediately
+      setShowSuggestions(false);
+      setSelectedSuggestionIndex(-1);
+      setCurrentWord('');
       
-      selection.removeAllRanges();
-      selection.addRange(range);
+      // Clear any pending suggestion timers
+      if (suggestionTimerRef.current) {
+        clearTimeout(suggestionTimerRef.current);
+      }
     }
-  };
-  
-  // Insert a bullet point when . button is clicked
-  const insertBulletPoint = () => {
+  }, [replaceWordAtCaret]);
+
+  // ==========================================
+  // EVENT HANDLERS
+  // ==========================================
+
+  const handlePaste = useCallback((e) => {
+    e.preventDefault();
+    const text = (e.clipboardData || window.clipboardData).getData('text');
+    document.execCommand('insertText', false, text);
+  }, []);
+
+  const toggleDarkMode = useCallback(() => {
+    setDarkMode(prev => !prev);
+  }, []);
+
+  const handleFormatApplied = useCallback(() => {
+    const content = editorRef.current?.innerHTML || '';
+    updatePageContent(content);
+  }, [updatePageContent]);
+
+  // ==========================================
+  // ENHANCED FORMATTING WITH SELECTION PRESERVATION
+  // ==========================================
+
+  const applyFormatWithCaret = useCallback((command, value = null) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    editor.focus();
+    
     const selection = window.getSelection();
-    if (selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      const textNode = document.createTextNode('\u2022  '); // Bullet point + spaces
-      range.insertNode(textNode);
+    if (!selection.rangeCount) return;
+
+    const range = selection.getRangeAt(0);
+    const isCollapsed = range.collapsed;
+
+    // Save selection state
+    let startOffset = 0;
+    let endOffset = 0;
+    
+    try {
+      // Calculate offsets relative to editor
+      const preStartRange = range.cloneRange();
+      preStartRange.selectNodeContents(editor);
+      preStartRange.setEnd(range.startContainer, range.startOffset);
+      startOffset = preStartRange.toString().length;
+
+      const preEndRange = range.cloneRange();
+      preEndRange.selectNodeContents(editor);
+      preEndRange.setEnd(range.endContainer, range.endOffset);
+      endOffset = preEndRange.toString().length;
+    } catch (e) {
+      console.error('Error calculating selection offsets:', e);
+    }
+
+    // Special handling for list commands
+    if (command === 'insertUnorderedList' || command === 'insertOrderedList') {
+      try {
+        // Check if already in a list
+        const inList = document.queryCommandState(command);
+        document.execCommand(command, false, value);
+        
+        // For lists, we don't need to restore exact position
+        // Just ensure editor is focused
+        requestAnimationFrame(() => {
+          editor.focus();
+          updatePageContent(editor.innerHTML);
+        });
+        return;
+      } catch (error) {
+        console.error('Error applying list format:', error);
+      }
+    }
+
+    // Apply formatting command
+    try {
+      const success = document.execCommand(command, false, value);
       
-      // Move cursor after the bullet point
-      const newRange = document.createRange();
-      newRange.setStart(textNode, textNode.textContent.length);
-      newRange.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(newRange);
+      if (!success) {
+        console.warn(`execCommand ${command} returned false`);
+      }
+
+      // Restore selection after formatting
+      requestAnimationFrame(() => {
+        try {
+          editor.focus();
+
+          // Rebuild selection from saved offsets
+          const walker = document.createTreeWalker(
+            editor,
+            NodeFilter.SHOW_TEXT,
+            null,
+            false
+          );
+
+          let currentPos = 0;
+          let startNode = null;
+          let endNode = null;
+          let startPos = 0;
+          let endPos = 0;
+          let found = false;
+
+          let node = walker.nextNode();
+          while (node && (!startNode || !endNode)) {
+            const nodeLength = node.textContent.length;
+            
+            if (!startNode && currentPos + nodeLength >= startOffset) {
+              startNode = node;
+              startPos = startOffset - currentPos;
+            }
+            
+            if (!endNode && currentPos + nodeLength >= endOffset) {
+              endNode = node;
+              endPos = endOffset - currentPos;
+            }
+            
+            currentPos += nodeLength;
+            node = walker.nextNode();
+          }
+
+          // Restore the selection/caret
+          if (startNode && endNode) {
+            const newRange = document.createRange();
+            const safeStartPos = Math.min(startPos, startNode.textContent.length);
+            const safeEndPos = Math.min(endPos, endNode.textContent.length);
+            
+            newRange.setStart(startNode, safeStartPos);
+            newRange.setEnd(endNode, safeEndPos);
+            
+            selection.removeAllRanges();
+            selection.addRange(newRange);
+            found = true;
+          }
+
+          // If we couldn't restore exact selection, position caret at saved offset
+          if (!found && isCollapsed) {
+            restoreCaretPosition(editor, startOffset);
+          }
+
+          // Update content
+          updatePageContent(editor.innerHTML);
+        } catch (error) {
+          console.error('Error restoring selection after format:', error);
+          updatePageContent(editor.innerHTML);
+        }
+      });
+    } catch (error) {
+      console.error('Error executing format command:', error);
+      updatePageContent(editor.innerHTML);
     }
-    editorRef.current.focus();
-  };
-  
-  // Formatting functions
-  const formatText = (command, value = null) => {
-    if (command === 'backgroundColor') {
-      setEditorBgColor(value);
-      editorRef.current.style.backgroundColor = value;
-    } else {
-      document.execCommand(command, false, value);
-    }
-    editorRef.current.focus();
-  };
-  
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
-  
-  const saveAsTxt = () => {
-    const content = editorRef.current.innerHTML;
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `note_${Date.now()}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-  
-  const printDocument = () => {
-    window.print();
-  };
-  
-  const toggleBold = () => {
-    formatText('bold');
-  };
-  
-  const toggleItalic = () => {
-    formatText('italic');
-  };
-  
-  const insertBulletList = () => {
-    formatText('insertUnorderedList');
-  };
-  
-  // Create a new page
-  const createNewPage = () => {
-    const newPageId = pages.length > 0 ? Math.max(...pages.map(p => p.id)) + 1 : 1;
-    const newPage = { id: newPageId, content: '', title: `Note ${newPageId}` };
-    setPages(prev => [...prev, newPage]);
-    setCurrentPageIndex(pages.length);
-  };
-  
-  // Navigate to a different page
-  const goToPage = (index) => {
-    if (index >= 0 && index < pages.length) {
-      setCurrentPageIndex(index);
-    }
-  };
-  
-  // State for selected suggestion index
-  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
-  
-  // Handle keyboard shortcuts
+  }, [restoreCaretPosition, updatePageContent]);
+
+  // ==========================================
+  // KEYBOARD NAVIGATION FOR SUGGESTIONS
+  // ==========================================
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (showSuggestions && suggestions.length > 0) {
         if (e.key === 'ArrowDown') {
           e.preventDefault();
-          setSelectedSuggestionIndex(prev => 
+          setSelectedSuggestionIndex(prev =>
             prev < suggestions.length - 1 ? prev + 1 : 0
           );
         } else if (e.key === 'ArrowUp') {
           e.preventDefault();
-          setSelectedSuggestionIndex(prev => 
+          setSelectedSuggestionIndex(prev =>
             prev > 0 ? prev - 1 : suggestions.length - 1
           );
         } else if (e.key === 'Enter' || e.key === 'Tab') {
           e.preventDefault();
           const indexToUse = selectedSuggestionIndex >= 0 ? selectedSuggestionIndex : 0;
           insertSuggestion(suggestions[indexToUse], e);
-          setSelectedSuggestionIndex(-1);
         } else if (e.key === 'Escape') {
+          e.preventDefault();
           setShowSuggestions(false);
           setSelectedSuggestionIndex(-1);
         }
       }
     };
-    
+
     document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showSuggestions, suggestions, selectedSuggestionIndex, insertSuggestion]);
+
+  // ==========================================
+  // SUGGESTION POSITIONING UPDATES (Scroll/Resize)
+  // ==========================================
+
+  useEffect(() => {
+    const updateSuggestionPosition = () => {
+      if (showSuggestions) {
+        const coords = getCaretCoordinates();
+        if (coords) {
+          setSuggestionPosition(coords);
+        }
+      }
     };
-  }, [showSuggestions, suggestions, selectedSuggestionIndex]);
-  
-  // Cleanup timer on unmount
+
+    // Listen to window scroll and resize
+    window.addEventListener('scroll', updateSuggestionPosition, true);
+    window.addEventListener('resize', updateSuggestionPosition);
+    
+    return () => {
+      window.removeEventListener('scroll', updateSuggestionPosition, true);
+      window.removeEventListener('resize', updateSuggestionPosition);
+    };
+  }, [showSuggestions, getCaretCoordinates]);
+
+  // ==========================================
+  // CLEANUP AND SIDE EFFECTS
+  // ==========================================
+
   useEffect(() => {
     return () => {
       if (suggestionTimerRef.current) {
@@ -379,7 +648,7 @@ function App() {
       }
     };
   }, []);
-  
+
   useEffect(() => {
     if (darkMode) {
       document.body.classList.add('dark-mode');
@@ -388,147 +657,85 @@ function App() {
     }
   }, [darkMode]);
 
+  // Update color when page changes
+  useEffect(() => {
+    setEditorBgColor(currentPage.color);
+  }, [currentPageIndex, currentPage.color]);
+
+  // ==========================================
+  // RENDER
+  // ==========================================
+
   return (
-    <div className={`min-h-screen flex flex-col items-center py-10 px-4 ${darkMode ? 'bg-gray-900' : 'bg-editor-bg'}`}>
-      {/* Top Navigation Bar */}
-      <div className="nav-container">
-        <button 
-          onClick={createNewPage}
-          className="nav-button primary-button"
-        >
-          <span>+</span>
-          <span>New Page</span>
-        </button>
-        
-        <div className="nav-arrows">
-          <button 
-            onClick={() => goToPage(Math.max(0, currentPageIndex - 1))}
-            disabled={currentPageIndex === 0}
-            className={`nav-arrow ${currentPageIndex === 0 ? 'disabled' : ''}`}
+    <div className={`app-container ${darkMode ? 'dark-mode' : ''}`}>
+      {/* Header with Dark Mode Toggle */}
+      <div className="app-header">
+        <div className="header-content">
+          <button
+            className="dark-mode-toggle"
+            onClick={toggleDarkMode}
+            title={`Switch to ${darkMode ? 'light' : 'dark'} mode`}
+            aria-label="Toggle dark mode"
           >
-            ←
-          </button>
-          <button 
-            onClick={() => goToPage(Math.min(pages.length - 1, currentPageIndex + 1))}
-            disabled={currentPageIndex === pages.length - 1}
-            className={`nav-arrow ${currentPageIndex === pages.length - 1 ? 'disabled' : ''}`}
-          >
-            →
+            {darkMode ? '☀️' : '🌙'}
           </button>
         </div>
       </div>
-      
-      {/* Formatting Toolbar */}
-      <div className="formatting-toolbar">
-        {/* Text Formatting Group */}
-        <div className="toolbar-group">
-          <button className="format-button" onClick={() => formatText('bold')} title="Bold (Ctrl+B)">
-            <strong>B</strong>
-          </button>
-          <button className="format-button" onClick={() => formatText('italic')} title="Italic (Ctrl+I)">
-            <em>I</em>
-          </button>
-          <button className="format-button" onClick={() => formatText('underline')} title="Underline">
-            <u>U</u>
-          </button>
-          <button className="format-button" onClick={() => formatText('strikeThrough')} title="Strikethrough">
-            <s>S</s>
-          </button>
-        </div>
-        
-        {/* Font Group */}
-        <div className="toolbar-group">
-          <select className="format-button" onChange={(e) => formatText('fontName', e.target.value)} title="Font Family">
-            <option value="Arial">Arial</option>
-            <option value="Times New Roman">Times NR</option>
-            <option value="Courier New">Courier</option>
-            <option value="Georgia">Georgia</option>
-            <option value="Verdana">Verdana</option>
-          </select>
-          
-          <select className="format-button" onChange={(e) => formatText('fontSize', e.target.value)} title="Font Size">
-            {[8, 12, 16, 20, 24, 32, 48].map(size => (
-              <option key={size} value={size}>{size}pt</option>
-            ))}
-          </select>
-        </div>
-        
-        {/* Alignment Group */}
-        <div className="toolbar-group">
-          <button className="format-button" onClick={() => formatText('justifyLeft')} title="Align Left">L</button>
-          <button className="format-button" onClick={() => formatText('justifyCenter')} title="Align Center">C</button>
-          <button className="format-button" onClick={() => formatText('justifyRight')} title="Align Right">R</button>
-          <button className="format-button" onClick={() => formatText('justifyFull')} title="Justify">J</button>
-        </div>
-        
-        {/* Color Group */}
-        <div className="toolbar-group">
-          <input 
-            type="color" 
-            className="format-button color-picker" 
-            onChange={(e) => formatText('foreColor', e.target.value)}
-            title="Text Color"
-          />
-          
-          <button className="format-button" onClick={insertBulletPoint} title="Bullet Point">•</button>
-        </div>
-        
-        {/* Utility Group */}
-        <div className="toolbar-group">
-          <button className="format-button" onClick={() => formatText('undo')} title="Undo">↺</button>
-          <button className="format-button" onClick={() => formatText('redo')} title="Redo">↻</button>
-          <button className="format-button" onClick={toggleDarkMode} title="Dark Mode">🌙</button>
-          <button className="format-button" onClick={saveAsTxt} title="Save TXT">💾</button>
-        </div>
-      </div>
-      
-      {/* Editor Card */}
-      <div className="editor-card">
-        <div 
+
+      {/* Main Content */}
+      <div className="app-main">
+        {/* Color Switcher - Top Bar */}
+        <ColorSwitcher
+          currentColor={editorBgColor}
+          onColorChange={updatePageColor}
+        />
+
+        {/* Toolbar for Formatting */}
+        <Toolbar
+          editorRef={editorRef}
+          onFormatApplied={handleFormatApplied}
+          applyFormat={applyFormatWithCaret}
+        />
+
+        {/* Page Manager Navigation */}
+        <PageManager
+          currentPage={currentPageIndex + 1}
+          totalPages={pages.length}
+          onPageChange={handlePageChange}
+          onAddPage={handleAddPage}
+          onDeletePage={handleDeletePage}
+        />
+
+        {/* Editor Canvas with Content */}
+        <EditorCanvas
           ref={editorRef}
-          contentEditable
-          className="editor-content"
+          editorRef={editorRef}
+          content={currentPage.content}
           onInput={handleInput}
-          onKeyDown={handleEditorKeyDown}
           onPaste={handlePaste}
-          suppressContentEditableWarning={true}
-          dir="ltr"
-          spellCheck="false"
-          style={{ backgroundColor: editorBgColor }}
-        >
+          backgroundColor={editorBgColor}
+          showSuggestions={showSuggestions}
+          suggestions={suggestions}
+          suggestionPosition={suggestionPosition}
+          selectedSuggestionIndex={selectedSuggestionIndex}
+          onSelectSuggestion={insertSuggestion}
+          currentWord={currentWord}
+        />
+
+        {/* Export Button */}
+        <div className="export-container">
+          <ExportButton
+            pageContent={currentPage.content}
+            pageNumber={currentPageIndex + 1}
+          />
         </div>
       </div>
-      
-      {/* Floating Suggestion Bubble */}
-      {showSuggestions && suggestions.length > 0 && (
-        <div 
-          className="suggestion-bubble"
-          style={{ left: suggestionPosition.x, top: suggestionPosition.y }}
-        >
-          <ul className="suggestion-list">
-            {suggestions.slice(0, 5).map((suggestion, index) => (
-              <li 
-                key={index}
-                onClick={(e) => {
-                  console.log('Suggestion clicked:', suggestion);
-                  e.preventDefault();
-                  e.stopPropagation();
-                  insertSuggestion(suggestion, e);
-                  setSelectedSuggestionIndex(-1);
-                }}
-                onMouseEnter={() => setSelectedSuggestionIndex(index)}
-                className={`suggestion-item ${selectedSuggestionIndex === index ? 'selected' : ''}`}
-              >
-                {suggestion}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      
-      {/* Page indicator */}
-      <div className="page-indicator">
-        Page {currentPageIndex + 1} of {pages.length}
+
+      {/* Footer */}
+      <div className="app-footer">
+        <p className="footer-text">
+          Powered by Trie + Heap algorithm • Multi-page notepad with formatting
+        </p>
       </div>
     </div>
   );

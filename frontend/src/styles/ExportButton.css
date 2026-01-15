@@ -1,0 +1,66 @@
+/* ==========================================
+   EXPORT BUTTON STYLING
+   ========================================== */
+
+.export-btn {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #91dcd7 0%, #7dccc9 100%);
+  border: 1.5px solid #6dbbb9;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  color: #1a4a47;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  white-space: nowrap;
+}
+
+.export-btn:hover {
+  background: linear-gradient(135deg, #7dccc9 0%, #6dbbb9 100%);
+  border-color: #5daaa8;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(145, 220, 215, 0.3);
+}
+
+.export-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.export-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Dark Mode Support */
+body.dark-mode .export-btn {
+  background: linear-gradient(135deg, #6dbbb9 0%, #5daaa8 100%);
+  border-color: #4d9a98;
+  color: #e0f2f1;
+}
+
+body.dark-mode .export-btn:hover {
+  background: linear-gradient(135deg, #5daaa8 0%, #4d9a98 100%);
+  border-color: #3d8a88;
+  box-shadow: 0 3px 8px rgba(109, 187, 185, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .export-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .export-btn {
+    padding: 5px 10px;
+    font-size: 11px;
+    gap: 4px;
+  }
+}

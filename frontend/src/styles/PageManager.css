@@ -1,0 +1,198 @@
+/* ==========================================
+   PAGE MANAGER STYLING
+   ========================================== */
+
+.page-manager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f9f9f9 0%, #fafafa 100%);
+  border-bottom: 2px solid rgba(184, 192, 255, 0.15);
+  gap: 20px;
+  border-radius: 0 0 8px 8px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+  flex-wrap: wrap;
+}
+
+.page-controls-left,
+.page-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-indicator {
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+.page-number,
+.total-pages {
+  color: #b0b2e4;
+  font-weight: 600;
+}
+
+.page-btn {
+  padding: 8px 14px;
+  background-color: white;
+  border: 1.5px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+}
+
+.page-btn:hover:not(:disabled) {
+  background-color: #f0f0f0;
+  border-color: #b0b2e4;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(176, 178, 228, 0.2);
+}
+
+.page-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.add-btn {
+  background: linear-gradient(135deg, #cdeab3 0%, #b8e0a1 100%);
+  border-color: #a8d490;
+  color: #3a5f2e;
+  font-weight: 600;
+}
+
+.add-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #b8e0a1 0%, #a8d490 100%);
+  border-color: #98c480;
+  box-shadow: 0 3px 8px rgba(173, 234, 179, 0.3);
+}
+
+.delete-btn {
+  background: linear-gradient(135deg, #ffbe89 0%, #ffb070 100%);
+  border-color: #ffa050;
+  color: #6b4423;
+  font-weight: 600;
+}
+
+.delete-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ffb070 0%, #ffa050 100%);
+  border-color: #ff9030;
+  box-shadow: 0 3px 8px rgba(255, 190, 137, 0.3);
+}
+
+.delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.prev-btn,
+.next-btn {
+  font-weight: 600;
+  color: #b0b2e4;
+  border-color: #b0b2e4;
+}
+
+.prev-btn:hover:not(:disabled),
+.next-btn:hover:not(:disabled) {
+  background-color: rgba(176, 178, 228, 0.1);
+  border-color: #9096d3;
+}
+
+/* Dark Mode Support */
+body.dark-mode .page-manager {
+  background: linear-gradient(135deg, #2d2d2d 0%, #252525 100%);
+  border-bottom-color: rgba(176, 178, 228, 0.1);
+}
+
+body.dark-mode .page-indicator {
+  color: #b0b2b0;
+}
+
+body.dark-mode .page-btn {
+  background-color: #3a3a3a;
+  border-color: #555;
+  color: #e0e0e0;
+}
+
+body.dark-mode .page-btn:hover:not(:disabled) {
+  background-color: #454545;
+  border-color: #b0b2e4;
+}
+
+body.dark-mode .add-btn {
+  background: linear-gradient(135deg, #a8d490 0%, #98c480 100%);
+  border-color: #8ab870;
+  color: #2a4620;
+}
+
+body.dark-mode .add-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #98c480 0%, #88b870 100%);
+}
+
+body.dark-mode .delete-btn {
+  background: linear-gradient(135deg, #ffa050 0%, #ff9030 100%);
+  border-color: #ff8010;
+  color: #5b3413;
+}
+
+body.dark-mode .delete-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff9030 0%, #ff8010 100%);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .page-manager {
+    gap: 12px;
+    padding: 10px 12px;
+  }
+
+  .page-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .page-indicator {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-manager {
+    gap: 8px;
+    padding: 8px 8px;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  .page-controls-left,
+  .page-controls-right {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .page-btn {
+    padding: 6px 8px;
+    font-size: 11px;
+    flex: 1;
+  }
+
+  .page-indicator {
+    font-size: 11px;
+  }
+}

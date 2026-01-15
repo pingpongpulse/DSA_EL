@@ -1,0 +1,151 @@
+/* Color Switcher Styles */
+
+.color-switcher-container {
+  width: 100%;
+  max-width: 768px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.3s ease;
+}
+
+.color-switcher-container:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.color-label {
+  font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #3a3a3a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.color-buttons-group {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.color-button {
+  width: 48px;
+  height: 48px;
+  border: 3px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  outline: none;
+
+  /* Accessibility focus */
+  &:focus-visible {
+    outline: 2px solid #b8c0ff;
+    outline-offset: 3px;
+  }
+}
+
+.color-button:hover {
+  transform: scale(1.1) translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.color-button:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Active state */
+.color-button.active {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.checkmark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: bold;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  line-height: 1;
+}
+
+/* Ensure checkmark is visible on light colors */
+.color-button.active[style*="#eaaeb4"] .checkmark,
+.color-button.active[style*="#ffbe89"] .checkmark,
+.color-button.active[style*="#ffd484"] .checkmark,
+.color-button.active[style*="#cdeab3"] .checkmark {
+  color: #333333;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+  .color-switcher-container {
+    max-width: 100%;
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .color-button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .checkmark {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .color-button {
+    width: 40px;
+    height: 40px;
+  }
+
+  .checkmark {
+    font-size: 18px;
+  }
+
+  .color-label {
+    font-size: 12px;
+  }
+}
+
+/* Dark mode support */
+body.dark-mode .color-switcher-container {
+  background-color: #2d2d2d;
+  border-color: #555555;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .color-switcher-container:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .color-label {
+  color: #e0e0e0;
+}
+
+body.dark-mode .color-button {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .color-button:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .color-button.active {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2), 0 4px 12px rgba(0, 0, 0, 0.5);
+}

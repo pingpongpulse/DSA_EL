@@ -1,0 +1,202 @@
+/* Notepad Editor Styles with Spiral Binding */
+
+.notepad-container {
+  width: 100%;
+  max-width: 768px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.notepad-container:hover {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* ===== SPIRAL BINDING (Pure CSS) ===== */
+.spiral-binding {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  height: 48px;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.03) 0%, rgba(0, 0, 0, 0.06) 100%);
+  border-bottom: 2px solid #d0d0d0;
+  padding: 8px 20px;
+  position: relative;
+}
+
+/* Create spiral holes using pseudo-elements and box-shadow */
+.spiral-hole {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.25));
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow:
+    inset -1px -1px 2px rgba(255, 255, 255, 0.7),
+    inset 1px 1px 2px rgba(0, 0, 0, 0.3);
+  position: relative;
+  transition: transform 0.3s ease;
+}
+
+.spiral-hole:hover {
+  transform: scale(1.1);
+}
+
+/* Metallic ring effect */
+.spiral-hole::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(200, 200, 200, 0.5);
+}
+
+/* ===== PAPER BACKGROUND ===== */
+.paper-background {
+  position: relative;
+  background-color: #fafaf8;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(200, 200, 200, 0.05) 0px,
+      rgba(200, 200, 200, 0.05) 1px,
+      transparent 1px,
+      transparent 2px
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+  padding: 24px;
+}
+
+/* ===== PAPER EDITOR ===== */
+.paper-editor {
+  width: 100%;
+  min-height: 500px;
+  outline: none;
+  color: #2c2c2c;
+  font-family: 'Georgia', 'Segoe UI', serif;
+  font-size: 16px;
+  line-height: 1.8;
+  direction: ltr;
+  text-align: left;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  background: transparent;
+  padding: 12px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  caret-color: #3a3a3a;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.paper-editor:focus {
+  background-color: rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 0 8px rgba(184, 192, 255, 0.1);
+}
+
+/* Text cursor styling */
+.paper-editor::selection {
+  background-color: rgba(184, 192, 255, 0.3);
+  color: #2c2c2c;
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 640px) {
+  .notepad-container {
+    max-width: 100%;
+    border-radius: 8px;
+  }
+
+  .spiral-binding {
+    height: 40px;
+    padding: 6px 12px;
+  }
+
+  .spiral-hole {
+    width: 12px;
+    height: 12px;
+  }
+
+  .paper-background {
+    padding: 16px;
+  }
+
+  .paper-editor {
+    min-height: 350px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .paper-editor {
+    min-height: 300px;
+    font-size: 14px;
+  }
+
+  .spiral-binding {
+    height: 36px;
+    padding: 4px 8px;
+  }
+
+  .spiral-hole {
+    width: 10px;
+    height: 10px;
+  }
+}
+
+/* Dark mode support */
+body.dark-mode .notepad-container {
+  background-color: #2d2d2d;
+  border-color: #555555;
+}
+
+body.dark-mode .spiral-binding {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.06) 100%);
+  border-bottom: 2px solid #444;
+}
+
+body.dark-mode .spiral-hole {
+  background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.2));
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow:
+    inset -1px -1px 2px rgba(0, 0, 0, 0.3),
+    inset 1px 1px 2px rgba(255, 255, 255, 0.2);
+}
+
+body.dark-mode .paper-background {
+  background-color: #1f1f1f;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(100, 100, 100, 0.08) 0px,
+      rgba(100, 100, 100, 0.08) 1px,
+      transparent 1px,
+      transparent 2px
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .paper-editor {
+  color: #e0e0e0;
+  caret-color: #ffffff;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .paper-editor:focus {
+  background-color: rgba(184, 192, 255, 0.05);
+  box-shadow: inset 0 0 8px rgba(184, 192, 255, 0.15);
+}
+
+body.dark-mode .paper-editor::selection {
+  background-color: rgba(184, 192, 255, 0.4);
+  color: #e0e0e0;
+}
