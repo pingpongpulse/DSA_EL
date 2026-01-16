@@ -158,11 +158,17 @@ function App() {
     const editor = editorRef.current;
     if (!editor) return null;
     
-    const editorRect = editor.getBoundingClientRect();
-
     // Calculate position relative to the page (fixed positioning)
+    // Ensure coordinates are valid numbers
     let caretX = rect.left;
     let caretY = rect.bottom;
+
+    // Fallback if coordinates are invalid
+    if (isNaN(caretX) || isNaN(caretY) || !isFinite(caretX) || !isFinite(caretY)) {
+      const editorRect = editor.getBoundingClientRect();
+      caretX = editorRect.left + 20; // Default to 20px from left of editor
+      caretY = editorRect.top + 30; // Default to 30px from top of editor
+    }
 
     // Check if caret is within viewport and visible
     const isVisible = 
@@ -197,17 +203,17 @@ function App() {
     
     const fullText = element.textContent || '';
     
-    // Find word boundaries
+    // Find word boundaries (improved to handle all alphanumeric characters)
     let wordStart = caretOffset;
     let wordEnd = caretOffset;
     
-    // Move backwards to find word start
-    while (wordStart > 0 && /[a-zA-Z]/.test(fullText[wordStart - 1])) {
+    // Move backwards to find word start (include letters, digits, and hyphens within words)
+    while (wordStart > 0 && /[a-zA-Z0-9]/.test(fullText[wordStart - 1])) {
       wordStart--;
     }
     
-    // Move forwards to find word end
-    while (wordEnd < fullText.length && /[a-zA-Z]/.test(fullText[wordEnd])) {
+    // Move forwards to find word end (include letters, digits, and hyphens within words)
+    while (wordEnd < fullText.length && /[a-zA-Z0-9]/.test(fullText[wordEnd])) {
       wordEnd++;
     }
     
@@ -239,10 +245,10 @@ function App() {
         return false;
       }
 
-      // Calculate new caret position (after new word + space)
+      // Calculate new caret position (at the end of the new word, without adding space)
       const fullText = editor.textContent || '';
       const beforeWord = fullText.substring(0, wordStart);
-      const newCaretPosition = beforeWord.length + newWord.length + 1;
+      const newCaretPosition = beforeWord.length + newWord.length;
 
       // Find all text nodes and locate the target node
       const walker = document.createTreeWalker(
@@ -287,7 +293,7 @@ function App() {
         // Complex case: word spans multiple text nodes (rare with our word detection)
         // Fall back to simple replacement
         const textContent = editor.textContent;
-        const newText = textContent.substring(0, wordStart) + newWord + ' ' + textContent.substring(wordEnd);
+        const newText = textContent.substring(0, wordStart) + newWord + textContent.substring(wordEnd);
         
         // Preserve formatting by using innerHTML manipulation
         editor.textContent = newText;
@@ -301,12 +307,12 @@ function App() {
       const beforeInNode = nodeText.substring(0, wordStartInNode);
       const afterInNode = nodeText.substring(wordEndInNode);
       
-      // Replace text preserving the parent element's formatting
-      targetNode.textContent = beforeInNode + newWord + ' ' + afterInNode;
+      // Replace text preserving the parent element's formatting (without adding space)
+      targetNode.textContent = beforeInNode + newWord + afterInNode;
 
-      // Position caret after the replaced word and space
+      // Position caret at the end of the replaced word
       const newRange = document.createRange();
-      const localCaretPos = wordStartInNode + newWord.length + 1;
+      const localCaretPos = wordStartInNode + newWord.length;
       
       try {
         // Ensure we don't exceed text length

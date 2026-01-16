@@ -32,7 +32,7 @@ const SuggestionBubble = ({
   }, [suggestions, currentWord]);
 
   // Determine visibility based on caret position and editor visibility
-  const isVisible = position?.isVisible !== false && show && suggestions.length > 0;
+  const isVisible = show && suggestions.length > 0;
   
   // Check if the editor itself is in the viewport
   const isEditorVisible = editorRef?.current ? (
@@ -41,11 +41,16 @@ const SuggestionBubble = ({
     editorRef.current.getBoundingClientRect().bottom > 0
   ) : true;
 
-  if (!isVisible || !isEditorVisible) return null;
+  // Check if position is valid
+  const isPositionValid = position && typeof position.x === 'number' && typeof position.y === 'number' &&
+                     !isNaN(position.x) && !isNaN(position.y) &&
+                     position.x > 0 && position.y > 0;
+
+  if (!isVisible || !isEditorVisible || !isPositionValid) return null;
 
   // Calculate position with adjustments for viewport
-  let displayX = position?.x || 0;
-  let displayY = position?.y || 0;
+  let displayX = (position && typeof position.x === 'number' && !isNaN(position.x)) ? position.x : 0;
+  let displayY = (position && typeof position.y === 'number' && !isNaN(position.y)) ? position.y : 0;
 
   // Add offset from caret
   const offsetX = 8;
